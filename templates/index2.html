@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <title>HR Dashboard | Innoventures</title>
+  <link rel="stylesheet" href="/static/style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" />
+</head>
+<body>
+  {% if message %}
+        <div id="alertContainer">
+            <script>
+                // Create and show the alert dynamically
+                var alertContainer = document.getElementById("alertContainer");
+                var alertMessage = document.createTextNode("{{ message }}");
+                var alertDiv = document.createElement("div");
+                alertDiv.setAttribute("class", "alert");
+                alertDiv.appendChild(alertMessage);
+                alertContainer.appendChild(alertDiv);
+
+                // Set a timeout to remove the alert after a few seconds (adjust as needed)
+                setTimeout(function() {
+                    alertContainer.removeChild(alertDiv);
+                }, 5000); // 5000 milliseconds = 5 seconds
+            </script>
+        </div>
+    {% endif %}
+  <div class="container">
+    <nav>
+      <div class="navbar">
+        <div class="logo">
+          <h1>ResumeTAG</h1>
+        </div>
+        <ul>
+          <li>
+            <a href="{{ url_for('index') }}">
+              <i class="fas fa-user"></i>
+              <span class="nav-item">Dashboard</span>
+            </a>
+          </li>
+          <li>
+            <a href="{{ url_for('interviews') }}">
+              <i class="fas fa-chart-bar"></i>
+              <span class="nav-item">Interview</span>
+            </a>
+          </li>
+          <li>
+            <a href="{{ url_for('selected_candidates') }}">
+              <i class="fab fa-dochub"></i>
+              <span class="nav-item">Selected</span>
+            </a>
+          </li>
+          
+          <li>
+            <a href="{{ url_for('About_us') }}">
+              <i class="fas fa-question-circle"></i>
+              <span class="nav-item">About Us</span>
+            </a>
+          </li>
+          <li>
+            <a href="/" class="logout" id="logout-btn"> 
+              <i class="fas fa-sign-out-alt"></i>
+              <span class="nav-item">Logout</span>
+            </a>
+          </li>
+        </ul>
+      </div>
+    </nav>
+
+    <section class="main">
+      
+      <div class="main-body">
+        <h1></h1>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <style>
+          select {
+            width: 200px;
+            padding: 5px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+          }
+          option {
+            padding: 5px;
+          }
+        </style>
+      </head>
+      <body>
+        
+
+        <form action="/upload" method="post" enctype="multipart/form-data">
+          <label for="resume" style="color: white; margin-bottom: 20px;">UPLOAD RESUME:</label>
+          <input type="file" name="document" style="color: white;"  accept=".pdf" required>
+          
+          <button type="submit"  style="margin-bottom: 20px;">Upload Resume</button>
+        </form>
+        <form action="{{ url_for('index') }}" method="get" style="margin-bottom: 30px">
+          <div>
+            <label for="search_bar" style="color: white;">Search:</label>
+            <input type="text" id="search_bar" name="search" placeholder="search here..">
+            <button type="submit">Search</button>
+          </div>
+          <div id="dynamicFields">
+            <label style="color: white;">Keys:</label>
+            <button type="button" class="key-btn" data-key="education">Education</button>
+            <button type="button" class="key-btn" data-key="location">Location</button>
+            <button type="button" class="key-btn" data-key="skills">Skills</button>
+            <button type="button" class="key-btn" data-key="certification">Certification</button>
+            <!--<button type="button" class="key-btn" data-key="contact">Contact</button>-->
+            <label></label>
+            <button type="button" class="operator-btn" data-operator="and">AND</button>
+            <button type="button" class="operator-btn" data-operator="or">OR</button>
+          </div>
+        </form>
+        <div id="messageContainer"></div>
+
+
+       <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Match Score</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for candidate, match_score in candidates %}
+              <tr>
+                <td>
+                  <a href="{{ url_for('candidate_details', candidate_id=candidate['_id']) }}">
+                    {{ candidate['name'] }}
+                  </a>
+                </td>
+                <td>{{ candidate['email'] }}</td>
+                <td>{{ match_score }}</td>
+                <td>
+                  <button class="view-btn" data-candidate-id="{{ candidate['_id'] }}">View</button>
+                  <form style="display:inline;" action="/select-candidate/{{ candidate['_id'] }}" method="post">
+                    <button type="submit" class="select" data-candidate-id="{{ candidate['_id'] }}">
+                      {% if candidate['selected'] %}
+                      Selected
+                      {% else %}
+                      Select
+                      {% endif %}
+                    </button>
+                  </form>
+                  <form style="display:inline;" action="/delete-candidate/{{ candidate['_id'] }}" method="post">
+                    <button type="submit" class="delete-button">Delete</button>
+                  </form>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+          
+        </div>
+        
+
+        
+
+
+        <script>
+          document.addEventListener("DOMContentLoaded", function () {
+            var viewButtons = document.querySelectorAll(".view-btn");
+            viewButtons.forEach(function (button) {
+              button.addEventListener("click", function () {
+                var candidateId = this.getAttribute("data-candidate-id");
+                window.location.href = "/candidate/" + candidateId;
+              });
+            });
+          });
+        </script>
+
+        <script>
+          document.getElementById('searchForm').addEventListener('submit', function (event) {
+            event.preventDefault();
+            window.location.href = "{{ url_for('index') }}?search=" + encodeURIComponent(document.getElementsByName('search')[0].value);
+          });
+          function selectCandidate(candidateId) {
+            fetch('/select-candidate/${candidateId}', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json'
+              },
+            })
+              .then(response => response.json())
+              .then(data => {
+                console.log(data);
+                const messageElement = document.getElementById('select-message');
+                if (data.success) {
+                  messageElement.innerText = 'Candidate selected successfully';
+                  messageElement.style.color = 'green';
+                } else {
+                  messageElement.innerText = data.message || data.error || 'Error selecting candidate';
+                  messageElement.style.color = 'red';
+                }
+              })
+              .catch(error => {
+                console.error('Error:', error);
+              });
+          }
+          function deleteCandidate(candidateId) {
+            fetch('/delete-candidate/${candidateId}', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json'
+              },
+            })
+              .then(response => response.json())
+              .then(data => {
+                console.log(data);
+                const messageElement = document.getElementById('delete-message');
+                if (data.success) {
+                  messageElement.innerText = 'Candidate deleted successfully';
+                  messageElement.style.color = 'green';
+                } else {
+                  messageElement.innerText = data.message || data.error || 'Error deleting candidate';
+                  messageElement.style.color = 'red';
+                }
+              })
+              .catch(error => {
+                console.error('Error:', error);
+              });
+          }
+        </script>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+      const searchBar = document.getElementById('search_bar');
+      const keyButtons = document.querySelectorAll('.key-btn');
+      const operatorButtons = document.querySelectorAll('.operator-btn');
+
+      keyButtons.forEach(function (button) {
+        button.addEventListener('click', function () {
+          const key = button.dataset.key;
+          const currentValue = searchBar.value.trim();
+          if (currentValue !== '') {
+            searchBar.value += `,${key}:`;
+          } else {
+            searchBar.value += `${key}:`;
+          }
+        });
+      });
+
+      operatorButtons.forEach(function (button) {
+        button.addEventListener('click', function () {
+          const operator = button.dataset.operator;
+          const currentValue = searchBar.value.trim();
+          if (operator.toLowerCase() === 'or' && currentValue !== '') {
+            searchBar.value += `,${operator},`;
+          } else if (operator.toLowerCase() === 'and' && currentValue !== '') {
+            searchBar.value += `,${operator},`;
+          } else if (currentValue !== '') {
+            searchBar.value += `,${operator},`;
+          } else {
+            searchBar.value += `${operator}:`;
+          }
+        });
+      });
+
+      function cleanSearchQuery() {
+        searchBar.value = searchBar.value.replace(/,+$/g, '');
+      }
+
+      document.getElementById('searchForm').addEventListener('submit', function (event) {
+        event.preventDefault();
+        cleanSearchQuery();
+        window.location.href = "{{ url_for('index') }}?search=" + encodeURIComponent(searchBar.value);
+      });
+    });
+
+    document.getElementById('logout-btn').addEventListener('click', function() {
+        // Perform logout actions here (e.g., clearing session, API requests, etc.)
+        alert('Logout successful!');
+        // Redirect to the login page
+        window.location.href = '/'; // Replace '/login' with the actual login page URL
+    });
+
+    function uploadResume() {
+        const form = document.getElementById('uploadForm');
+        const formData = new FormData(form);
+
+        fetch('/upload', {
+            method: 'POST',
+            body: formData,
+        })
+        .then(response => response.json())
+        .then(data => {
+            // Handle the response or perform any necessary actions
+            console.log('Server response:', data);
+        })
+        .catch(error => {
+            console.error('Error:', error);
+        });
+    }
+
+
+  
+
+
+
+
+  </script>
+  
+  
+    </body>
+    </html>
